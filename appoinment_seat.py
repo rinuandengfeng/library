@@ -7,7 +7,7 @@ from lxml import etree
 from config import global_config
 
 from log import logger
-from utils import seatid_to_json,get_seatId
+from utils import seatid_to_json,get_seatId,seatId_to_json_file
 
 from exception import SeatException
 
@@ -29,6 +29,10 @@ class LibrarySeat(object):
         self._seat_file_path = os.path.join(os.getcwd(),global_config.get('account','seat_file_path'))
         if not os.path.exists(self._seat_file_path):
             os.makedirs(self._seat_file_path)
+        #图书馆教室名
+        self.classroom = global_config.get('seat','classroom')
+        #座位id
+        self.seatId = global_config.get('seat','seat_num')
 
     # 登录
 
@@ -111,6 +115,7 @@ class LibrarySeat(object):
         return map_token
     
     # 获取教室号、座位id、座位号，并存入对应的教室的json文件
+    #其他学校带更新
     def requests_seat(self):
         
         url = self._url + '/mapBook/ajaxGetRooms'
@@ -135,7 +140,7 @@ class LibrarySeat(object):
                     if content:
                         for classroom in content:
                             # 获取座位id和座位号，并转化为json
-                            get_seatId(self,classroom=classroom)
+                            seatId_to_json_file(self,classroom=classroom)
             else:
                 for j in range(0, 6):
                     data = {
@@ -149,9 +154,43 @@ class LibrarySeat(object):
                     if content:
                         for classroom in content:
                             # 获取座位id和座位号，并转化为json
-                            get_seatId(self,classroom=classroom)
+                            seatId_to_json_file(self,classroom=classroom)
+
+
+    #获取预约时间对应的时间id
+    def get_appoinment_timeId(self):
+        url = self._url+"/freeBook/ajaxGetTime"
+        headers = {
+            "user-agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36',
+            "Connection": "Keep-alive",
+            "Referer": "https://zuowei.hnuahe.edu.cn/map",
+            "x-requested-with":"XMLHttpRequest"
+        }
+
+        params = {
+            "id":get_seatId(self.classroom,self.seatId),
+            "date":str(TODAY_DATE)
+        }
+
+        responses = self.session.get(url=url,headers=headers,params=params,proxies=self._proxies)
+
+        with open('time.html','w',encoding='utf8') as f:
+            f.write(responses.text)
+        
+
+
+
+
+
+
+    #预约座位
+    def _appoinment_seat(self):
+        url = self._url+'/selfRes'
+
     
 
 if __name__ == '__main__':
     test = LibrarySeat()
-    test.get_seatid_file()
+    test.logins()
+    test.requests_seat()
+    test.get_appoinment_timeId()
