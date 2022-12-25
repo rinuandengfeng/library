@@ -7,7 +7,7 @@ from lxml import etree
 from config import global_config
 
 from log import logger
-from utils import seatid_to_json,get_seatId,seatId_to_json_file
+from utils import seatid_to_json,get_seatId,seatId_to_json_file,get_timeId
 
 from exception import SeatException
 
@@ -29,13 +29,24 @@ class LibrarySeat(object):
         self._seat_file_path = os.path.join(os.getcwd(),global_config.get('account','seat_file_path'))
         if not os.path.exists(self._seat_file_path):
             os.makedirs(self._seat_file_path)
-        #图书馆教室名
-        self.classroom = global_config.get('seat','classroom')
-        #座位id
+        # self.classroom = global_config.get('seat','classroom')
         self.seatId = global_config.get('seat','seat_num')
+        self.start_time = get_timeId(global_config.get('seat','start_time'))
+        self.end_time = get_timeId(global_config.get('seat','end_time'))
+
+
+    def start(self):
+        self.logins()
+        if self.isLogin:
+            self.__appoinment_seat()
+            
+
+
+
+
+
 
     # 登录
-
     def logins(self):
         self.__login()
         if self.isLogin:
@@ -50,6 +61,7 @@ class LibrarySeat(object):
             self.requests_seat()
         except Exception as e:
             logger.error("登录失败，请重新登录。")
+
 
 
     # 获取登录页面
@@ -100,7 +112,7 @@ class LibrarySeat(object):
 
     # 获取预约座位页面
     def get_map(self):
-        url = self.url + '/map'
+        url = self._url + '/map'
         header = {
             "Content-Type": "application/x-www-form-urlencoded",
             "referer": "https://zuowei.hnuahe.edu.cn/",
@@ -111,8 +123,12 @@ class LibrarySeat(object):
 
         # 获取选座位的SYNCHRONIZER_TOKEN
         tree = etree.HTML(respones.text)
-        map_token = tree.xpath('//*[@id="SYNCHRONIZER_TOKEN"]/@value')[0]
-        return map_token
+        try:
+            map_token = tree.xpath('//*[@id="SYNCHRONIZER_TOKEN"]/@value')[0]
+            return map_token
+        except Exception as e:
+            logger.error("获取map页面中的SYNCHRONIZER_TOKEN失败"+str(e))    
+        
     
     # 获取教室号、座位id、座位号，并存入对应的教室的json文件
     #其他学校带更新
@@ -157,26 +173,24 @@ class LibrarySeat(object):
                             seatId_to_json_file(self,classroom=classroom)
 
 
-    #获取预约时间对应的时间id
-    def get_appoinment_timeId(self):
-        url = self._url+"/freeBook/ajaxGetTime"
-        headers = {
-            "user-agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36',
-            "Connection": "Keep-alive",
-            "Referer": "https://zuowei.hnuahe.edu.cn/map",
-            "x-requested-with":"XMLHttpRequest"
-        }
+    # #获取预约时间对应的时间id
+    #响应对象中没有时间和相对应的时间ID
+    # def get_appoinment_timeId(self):
+    #     url = self._url+"/freeBook/ajaxGetTime"
+    #     headers = {
+    #         "user-agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36',
+    #         "Connection": "Keep-alive",
+    #         "Referer": "https://zuowei.hnuahe.edu.cn/map",
+    #         "x-requested-with":"XMLHttpRequest"
+    #     }
 
-        params = {
-            "id":get_seatId(self.classroom,self.seatId),
-            "date":str(TODAY_DATE)
-        }
+    #     params = {
+    #         "id":get_seatId(self.classroom,self.seatId),
+    #         "date":str(TODAY_DATE)
+    #     }
 
-        responses = self.session.get(url=url,headers=headers,params=params,proxies=self._proxies)
+    #     responses = self.session.get(url=url,headers=headers,params=params,proxies=self._proxies)
 
-        with open('time.html','w',encoding='utf8') as f:
-            f.write(responses.text)
-        
 
 
 
@@ -184,13 +198,35 @@ class LibrarySeat(object):
 
 
     #预约座位
-    def _appoinment_seat(self):
+    def __appoinment_seat(self):
+        tomorrow = TODAY_DATE+datetime.timedelta(days=1)
         url = self._url+'/selfRes'
-
-    
+        header = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "referer": "https://zuowei.hnuahe.edu.cn/map",
+            "user-agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36',
+            "Connection": "Keep-alive"
+        }
+        data ={
+            "SYNCHRONIZER_TOKEN": self.get_map(),
+            "SYNCHRONIZER_URI": "/map",
+            "authid": "-1",
+            "start": str(self.start_time),  
+            "end": str(self.end_time),  
+            # "date": str(tomorrow),
+            "date":str(TODAY_DATE),
+            "seat": self.seatId,  
+        }
+        try:
+            respones = self.session.post(url=url, headers=header, data=data, timeout=(5, 3),proxies=self._proxies)
+            tree = etree.HTML(respones.text)
+            content = tree.xpath('/html/body/div[3]/div[3]/div/div/dl//text()')
+            logger.info(content)
+        except Exception as e:
+            logger.error("预约失败"+str(e))
 
 if __name__ == '__main__':
     test = LibrarySeat()
-    test.logins()
-    test.requests_seat()
-    test.get_appoinment_timeId()
+    test.start()
+    
+    
