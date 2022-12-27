@@ -7,7 +7,7 @@ from lxml import etree
 from config import global_config
 
 from log import logger
-from utils import seatid_to_json,get_seatId,seatId_to_json_file,get_timeId
+from utils import get_seatId,seatId_to_json_file,get_timeId
 
 from exception import SeatException
 
@@ -29,21 +29,40 @@ class LibrarySeat(object):
         self._seat_file_path = os.path.join(os.getcwd(),global_config.get('account','seat_file_path'))
         if not os.path.exists(self._seat_file_path):
             os.makedirs(self._seat_file_path)
-        # self.classroom = global_config.get('seat','classroom')
-        self.seatId = global_config.get('seat','seat_num')
+        self.classroom = global_config.get('seat','classroom')
+        self.seat_num = global_config.get('seat','seat_num')
         self.start_time = get_timeId(global_config.get('seat','start_time'))
         self.end_time = get_timeId(global_config.get('seat','end_time'))
+        
 
 
     def start(self):
         self.logins()
         if self.isLogin:
-            self.__appoinment_seat()
-            
-
-
-
-
+            classroom_path = self._seat_file_path+self.classroom+".json"
+            if not os.path.exists(classroom_path):
+                self.requests_seat()
+                content = self.__appoinment_seat()
+                if content[1] == '预约失败! ':
+                    logger.error(content[1])
+                    logger.error(content[3])
+                elif content[1] =='系统已经为您预定好了':
+                    logger.info(content[1])
+                    result = content[7]+content[8]+content[10]+content[11]+content[13]+content[14]
+                    logger.info(result)
+                else:
+                    logger.error("系统错误，预约失败")
+            else:
+                content = self.__appoinment_seat()
+                if content[1] == '预约失败! ':
+                    logger.error[content[1]]
+                    logger.error(content[3])
+                elif content[1] =='系统已经为您预定好了':
+                    logger.info(content[1])
+                    result = content[7]+content[8]+content[10]+content[11]+content[13]+content[14]
+                    logger.info(result)
+                else:
+                    logger.error("系统错误，预约失败")
 
 
     # 登录
@@ -211,22 +230,23 @@ class LibrarySeat(object):
             "SYNCHRONIZER_TOKEN": self.get_map(),
             "SYNCHRONIZER_URI": "/map",
             "authid": "-1",
-            "start": str(self.start_time),  
-            "end": str(self.end_time),  
+            "start": self.start_time,  
+            "end": self.end_time,  
             # "date": str(tomorrow),
             "date":str(TODAY_DATE),
-            "seat": self.seatId,  
+            "seat":get_seatId(self.classroom,self.seat_num)  
         }
         try:
             respones = self.session.post(url=url, headers=header, data=data, timeout=(5, 3),proxies=self._proxies)
             tree = etree.HTML(respones.text)
             content = tree.xpath('/html/body/div[3]/div[3]/div/div/dl//text()')
-            logger.info(content)
+            return content
         except Exception as e:
             logger.error("预约失败"+str(e))
 
 if __name__ == '__main__':
     test = LibrarySeat()
+    # test.requests_seat()
     test.start()
     
     

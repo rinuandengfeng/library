@@ -30,7 +30,7 @@ def seatId_to_json_file(library,classroom):
     seat_url = "https://zuowei.hnuahe.edu.cn" + "/mapBook/getSeatsByRoom"
 
     seat_response = library.session.get(
-        url=seat_url, params=seat_data, timeout=(5, 3), proxies=library._proxies)
+        url=seat_url, headers=headers,params=seat_data, timeout=(5, 3), proxies=library._proxies)
     tree = etree.HTML(seat_response.text)
     seat_id = tree.xpath('//ul/li/@id')
     seat_num = tree.xpath('//ul//li/div/code/text()')
