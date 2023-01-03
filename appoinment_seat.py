@@ -74,6 +74,7 @@ class LibrarySeat(object):
             raise SeatException("登录失败。")
     
     # 获取房间和座位
+   
     def get_seatid_file(self):
         try:
             self.logins()
@@ -232,8 +233,8 @@ class LibrarySeat(object):
             "authid": "-1",
             "start": self.start_time,  
             "end": self.end_time,  
-            # "date": str(tomorrow),
-            "date":str(TODAY_DATE),
+            "date": str(tomorrow),
+            # "date":str(TODAY_DATE),
             "seat":get_seatId(self.classroom,self.seat_num)  
         }
         try:
