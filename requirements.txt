@@ -1,0 +1,17 @@
+autopep8==2.0.1
+certifi==2022.12.7
+charset-normalizer==2.1.1
+configparser==5.3.0
+flake8==4.0.1
+idna==3.4
+importlib-metadata==4.11.3
+lxml==4.9.1
+mccabe==0.7.0
+pycodestyle==2.10.0
+pyflakes==2.4.0
+requests==2.28.1
+schedule==1.1.0
+tomli==2.0.1
+urllib3==1.26.13
+wincertstore==0.2
+zipp==3.8.0
