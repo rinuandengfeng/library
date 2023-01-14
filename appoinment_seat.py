@@ -3,6 +3,7 @@ import json
 import os
 
 import requests
+import schedule
 from lxml import etree
 from config import global_config
 
@@ -33,11 +34,12 @@ class LibrarySeat(object):
         self.seat_num = global_config.get('seat','seat_num')
         self.start_time = get_timeId(global_config.get('seat','start_time'))
         self.end_time = get_timeId(global_config.get('seat','end_time'))
+
+
         
 
-
-    def start(self):
-        self.logins()
+    #预约启动函数
+    def seat_start(self) -> None:
         if self.isLogin:
             classroom_path = self._seat_file_path+self.classroom+".json"
             if not os.path.exists(classroom_path):
@@ -51,33 +53,31 @@ class LibrarySeat(object):
                     result = content[7]+content[8]+content[10]+content[11]+content[13]+content[14]
                     logger.info(result)
                 else:
-                    logger.error("系统错误，预约失败")
+                    raise SeatException("系统错误，预约失败")
             else:
                 content = self.__appoinment_seat()
                 if content[1] == '预约失败! ':
-                    logger.error[content[1]]
+                    logger.error(content[1])
                     logger.error(content[3])
                 elif content[1] =='系统已经为您预定好了':
                     logger.info(content[1])
                     result = content[7]+content[8]+content[10]+content[11]+content[13]+content[14]
                     logger.info(result)
                 else:
-                    logger.error("系统错误，预约失败")
+                    raise SeatException("系统错误，预约失败")
 
 
     # 登录
-    def logins(self):
+    def logins(self) -> None:
         self.__login()
         if self.isLogin:
-            print("登录成功。")
+            logger.info("登录成功")
         else:
             raise SeatException("登录失败。")
     
     # 获取房间和座位
-   
-    def get_seatid_file(self):
+    def get_seatid_file(self) -> None:
         try:
-            self.logins()
             self.requests_seat()
         except Exception as e:
             logger.error("登录失败，请重新登录。")
@@ -126,12 +126,11 @@ class LibrarySeat(object):
             respones = self.session.post(
                 url=url, data=data, headers=header, timeout=(5, 3))
             self.isLogin = True
-            logger.info("登录成功！")
         except Exception as e:
             logger.error("登录失败:", e)
 
     # 获取预约座位页面
-    def get_map(self):
+    def get_map(self) -> str:
         url = self._url + '/map'
         header = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -152,7 +151,7 @@ class LibrarySeat(object):
     
     # 获取教室号、座位id、座位号，并存入对应的教室的json文件
     #其他学校带更新
-    def requests_seat(self):
+    def requests_seat(self) -> None:
         
         url = self._url + '/mapBook/ajaxGetRooms'
         headers = {
@@ -218,7 +217,7 @@ class LibrarySeat(object):
 
 
     #预约座位
-    def __appoinment_seat(self):
+    def __appoinment_seat(self) -> list:
         tomorrow = TODAY_DATE+datetime.timedelta(days=1)
         url = self._url+'/selfRes'
         header = {
@@ -247,7 +246,6 @@ class LibrarySeat(object):
 
 if __name__ == '__main__':
     test = LibrarySeat()
-    # test.requests_seat()
     test.start()
     
     
