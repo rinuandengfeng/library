@@ -1,11 +1,9 @@
 # 图书馆预约脚本
 
-<h1>
-<img src="https://img.shields.io/github/contributors/rinuandengfeng/library.svg?
-style=for-the-badge"/>
+<!-- <h1>
 <img src="https://img.shields.io/github/stars/rinuandengfeng/library.svg?style=for-the-badge" />
 <img src="https://img.shields.io/github/issues/rinuandengfeng/library.svg?style=for-the-badge" />
-</h1>
+</h1> -->
 
 
 
